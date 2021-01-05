@@ -25,14 +25,7 @@ class ChessItem():
         self.pos = ChessPos() if pos is None else pos
         
     def move_to(self, pos):
-        self.pos = ChessPos() if pos is None else pos
-
-class ChessComment():
-    def __init__(self, comment, step, id = None):
-        self.comment = comment
-        self.step = step
-        self.id = 0 if id is None else id
-        
+        self.pos = ChessPos() if pos is None else pos        
 
 class Parser():
     def __init__(self, show_comments = True):
@@ -168,32 +161,39 @@ class Parser():
         if self.show_comments:
             cmt = self.get_comment(self.step_no, id)
             if cmt is not None:
-                return stp + '  ' + cmt.comment
+                return stp + '  ' + cmt['comment']
         return stp
 
     def translate_steps(self, steps, id = None):
-        self.step_lists.append({'id': 0 if id is None else int(id), 'steps': steps})
+        if id is None or int(id) == 0:
+            self.step_lists.append({'id': 0, 'steps': steps, 'baseid': 0, 'start_node':0})
         stps = [self.translate_step(steps[i:i+4], int(id)) for i in range(0,len(steps),4)]
         for s in stps:
             print(s)
             
+    def get_whole_steps(self, id):
+        basestep = [s for s in self.step_lists if s['id'] == int(id)][0]
+        if int(id) == 0 or basestep['id'] == basestep['baseid']:
+            return basestep['steps']
+        basesteps = self.get_whole_steps(basestep['baseid'])
+        return basesteps[0:4*basestep['start_node'] - 4] + basestep['steps']
+
     def translate_sub_steps(self, steps, baseid, node, subid):
-        basesteps = [s for s in self.step_lists if s['id'] == int(baseid)][0]['steps']
-        substeps = basesteps[0:4*int(node) - 4] + steps
+        self.step_lists.append({'id':int(subid), 'steps':steps, 'baseid': int(baseid), 'start_node':int(node)})
         self.init()
-        self.translate_steps(substeps, int(subid))
+        self.translate_steps(self.get_whole_steps(subid), int(subid))
 
     def get_comment(self, step, id = None):
         id = 0 if id is None else id
         for c in self.comments_list:
-            if c.step == step and c.id == id:
+            if c['step'] == step and c['step_list_id'] == id:
                 return c
 
     def load_comments(self, cmtstr):
         cmts = re.findall(r'\[DhtmlXQ_comment([\d]+)\](.*?)\[/DhtmlXQ_comment([\d]+)\]', cmtstr, re.DOTALL)
-        [self.comments_list.append(ChessComment(c[1], int(c[0]))) for c in cmts if c[0] == c[2]]
+        [self.comments_list.append({'step_list_id':0, 'step':int(c[0]), 'comment': c[1]}) for c in cmts if c[0] == c[2]]
         cmts = re.findall(r'\[DhtmlXQ_comment([\d]+)_([\d]+)\](.*?)\[/DhtmlXQ_comment([\d]+)_([\d]+)\]', cmtstr, re.DOTALL)
-        [self.comments_list.append(ChessComment(c[2], int(c[1]), int(c[0]))) for c in cmts if c[0] == c[3] and c[1] == c[4]]
+        [self.comments_list.append({'step_list_id':int(c[0]), 'step':int(c[1]), 'comment': c[2]}) for c in cmts if c[0] == c[3] and c[1] == c[4]]
 
     def load_dhtml(self, text):
         self.load_comments(text)
