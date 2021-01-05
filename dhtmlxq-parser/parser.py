@@ -39,6 +39,7 @@ class Parser():
         ]
 
         self.line_labels = ['九', '八', '七', '六', '五', '四', '三', '二', '一']
+        self.step_lists = []
 
     def init(self, binit = None):
         if not isinstance(binit, str) or not len(binit) == 64:
@@ -121,7 +122,7 @@ class Parser():
 
     def get_distance_str(self, cid, y1, y2):
         if cid[0] == 'r':
-            return self.line_labels[-(y1 - y2)]
+            return self.line_labels[-abs(y1 - y2)]
         return str(abs(y1 - y2))
 
     def translate_step(self, step):
@@ -151,11 +152,17 @@ class Parser():
         c.move_to(pos2)
         return stp
 
-    def translate_steps(self, steps):
+    def translate_steps(self, steps, id = None):
+        self.step_lists.append({'id': 0 if id is None else id, 'steps': steps})
         stps = [self.translate_step(steps[i:i+4]) for i in range(0,len(steps),4)]
         for s in stps:
             print(s)
             
+    def translate_sub_steps(self, steps, baseid, node, subid):
+        basesteps = [s for s in self.step_lists if s['id'] == baseid][0]['steps']
+        substeps = basesteps[0:4*node - 4] + steps
+        self.init()
+        self.translate_steps(substeps, subid)
 
     def load_dhtml(self, text):
         pass
@@ -165,4 +172,5 @@ if __name__ == '__main__':
     p.init()
     # 7747724279677062898880708838707638311002090812191712627047435041083840503130413038584252585250401242
     p.translate_steps('7747724279677062898880708838707638311002090812191712627047435041083840503130413038584252585250401242')
-
+    p.translate_sub_steps('505130314252124251504353527231412042385819125352', 0, 20, 1)
+    p.translate_sub_steps('38317062415150405343426451616082314140306162', 1, 29, 2)
