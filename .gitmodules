@@ -1,0 +1,3 @@
+[submodule "sql_helper"]
+	path = sql_helper
+	url = git@github.com:JumuFENG/sql_helper.git
