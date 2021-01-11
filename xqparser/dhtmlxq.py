@@ -20,6 +20,9 @@ class ChessPos():
         elif isinstance(xy, int) and xy < 100 and xy > -1:
             self.x = xy / 10
             self.y = xy % 10
+        if self.x > 8 or self.y > 9 or self.x < 0 or self.y < 0:
+            self.x = -1
+            self.y = -1
 
 class ChessItem():
     def __init__(self, id, name, pos = None):

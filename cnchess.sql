@@ -11,5 +11,7 @@ create table chess_qipu
     id                  BIGINT              NOT NULL,
     title               VARCHAR(255)        DEFAULT "无",
     binit               VARCHAR(80)         DEFAULT "",
+    tips                VARCHAR(100)        DEFAULT "",
+    category            VARCHAR(40)         DEFAULT "",
     PRIMARY KEY (id)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
