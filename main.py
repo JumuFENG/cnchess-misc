@@ -3,6 +3,7 @@
 
 from netutil.netutils import XQDownloader
 from xqparser.dhtmlxq import Parser
+from db_utils import ChessDb
 import re
 
 def get_next_view(fn):
@@ -10,9 +11,14 @@ def get_next_view(fn):
     html = d.get_request(fn)
 
     p = Parser()
+    db = ChessDb()
     dhtml = re.findall(r'\[DhtmlXQ\](.*?)\[/DhtmlXQ\]', html, re.DOTALL)
-    [p.load_dhtml(h) for h in dhtml]
+    for h in dhtml:
+        game = p.load_dhtml(h)
+        db.save_game(game)
+        p.translate(game)
     nexthref = re.search(r'<a href="(.*?)" class="next">下局棋谱：', html).group(1).strip()
+    print('next: ', nexthref)
     return nexthref
 
 def get_views(start, repeat = False):
@@ -22,5 +28,13 @@ def get_views(start, repeat = False):
         if nexthref == '/':
             break
 
+def get_from_db():
+    db = ChessDb()
+    p = Parser()
+    qp = db.get_all_qipu()
+    for x in qp:
+        p.translate(x)
+
 if __name__ == '__main__':
-    get_views('/Category/View-8289.html')
+    #get_views('/Category/View-8288.html')
+    get_from_db()

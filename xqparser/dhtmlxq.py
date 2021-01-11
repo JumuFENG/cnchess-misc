@@ -62,9 +62,6 @@ class Parser():
         ]
 
         self.line_labels = ['九', '八', '七', '六', '五', '四', '三', '二', '一']
-        self.chess_game = {'move_list':[], 'comments':[]}
-        self.step_lists = []
-        self.step_no = 0
 
     def init(self, binit = None):
         if not isinstance(binit, str) or not len(binit) == 64:
@@ -78,8 +75,6 @@ class Parser():
 
         for i in range(0, len(iinit)):
             self.all_chess[i].move_to(iinit[i])
-
-        self.step_no = 0
 
     def get_chess_by_pos(self, pos):
         for c in self.all_chess:
@@ -184,20 +179,20 @@ class Parser():
 
     def translate_steps(self, steps):
         self.init()
-        stps = [self.translate_step(s) for s in self.get_whole_steps(steps['id'])]
+        stps = [self.translate_step(s) for s in self.get_whole_steps(self.step_lists, steps['id'])]
         for s in stps:
             print(s.full_step() if self.show_comments else s)
             
-    def get_whole_steps(self, id):
-        basestep = [s for s in self.step_lists if s['id'] == int(id)][0]
+    def get_whole_steps(self, step_lists, id):
+        basestep = [s for s in step_lists if s['id'] == int(id)][0]
         if int(id) == 0 or basestep['id'] == basestep['baseid']:
             return basestep['steps']
-        basesteps = self.get_whole_steps(basestep['baseid'])
+        basesteps = self.get_whole_steps(step_lists, basestep['baseid'])
         return basesteps[0:basestep['start_node'] - 1] + basestep['steps']
 
     def match_step_comment(self, mvlist, comments):
-        mvlist.sort(key = lambda m: m['id'])
-        step_lists = []
+        #mvlist.sort(key = lambda m: m['id'])
+        self.step_lists = []
         for m in mvlist:
             step = {}
             step['id'] = m['id']
@@ -207,33 +202,32 @@ class Parser():
             for i in range(0, len(step['steps'])):
                 comment = None
                 for c in comments:
-                    if c['step_list_id'] == m['id'] and c['step'] == i + 1:
+                    if c['step_list_id'] == m['id'] and c['step'] == i + m['start_node']:
                         comment = c['comment']
                         break
                 step['steps'][i].comment = comment
-            step_lists.append(step)
-        return step_lists
-
-    def load_comments(self, cmtstr):
-        cmts = re.findall(r'\[DhtmlXQ_comment([\d]+)\](.*?)\[/DhtmlXQ_comment([\d]+)\]', cmtstr, re.DOTALL)
-        [self.chess_game['comments'].append({'step_list_id':0, 'step':int(c[0]), 'comment': c[1]}) for c in cmts if c[0] == c[2]]
-        cmts = re.findall(r'\[DhtmlXQ_comment([\d]+)_([\d]+)\](.*?)\[/DhtmlXQ_comment([\d]+)_([\d]+)\]', cmtstr, re.DOTALL)
-        [self.chess_game['comments'].append({'step_list_id':int(c[0]), 'step':int(c[1]), 'comment': c[2]}) for c in cmts if c[0] == c[3] and c[1] == c[4]]
+            self.step_lists.append(step)
 
     def load_dhtml(self, text):
-        self.load_comments(text)
+        chess_game = {'move_list':[], 'comments':[]}
+        cmts = re.findall(r'\[DhtmlXQ_comment([\d]+)\](.*?)\[/DhtmlXQ_comment([\d]+)\]', text, re.DOTALL)
+        [chess_game['comments'].append({'step_list_id':0, 'step':int(c[0]), 'comment': c[1]}) for c in cmts if c[0] == c[2]]
+        cmts = re.findall(r'\[DhtmlXQ_comment([\d]+)_([\d]+)\](.*?)\[/DhtmlXQ_comment([\d]+)_([\d]+)\]', text, re.DOTALL)
+        [chess_game['comments'].append({'step_list_id':int(c[0]), 'step':int(c[1]), 'comment': c[2]}) for c in cmts if c[0] == c[3] and c[1] == c[4]]
         title = re.search(r'\[DhtmlXQ_title\](.*?)\[/DhtmlXQ_title\]', text).group(1).strip()
-        self.chess_game['title'] = title
+        chess_game['title'] = title
         binit = re.search(r'\[DhtmlXQ_binit\](.*?)\[/DhtmlXQ_binit\]', text).group(1).strip()
-        self.chess_game['binit'] = None if binit == '8979695949392919097717866646260600102030405060708012720323436383' else binit
+        chess_game['binit'] = None if binit == '8979695949392919097717866646260600102030405060708012720323436383' else binit
         mvlist = re.search(r'\[DhtmlXQ_movelist\](.*?)\[/DhtmlXQ_movelist\]', text).group(1).strip()
-        self.chess_game['move_list'].append({'id': 0, 'steps': mvlist, 'baseid': 0, 'start_node':0})
+        chess_game['move_list'].append({'id': 0, 'steps': mvlist, 'baseid': 0, 'start_node':1})
         sublist = re.findall(r'\[DhtmlXQ_move_([\d]+)_([\d]+)_([\d]+)\](.*?)\[/DhtmlXQ_move_([\d]+)_([\d]+)_([\d]+)\]', text, re.DOTALL)
-        [self.chess_game['move_list'].append({
+        [chess_game['move_list'].append({
             'id':int(s[2]), 'steps':s[3], 'baseid': int(s[0]), 'start_node':int(s[1])
             }) for s in sublist if s[0] == s[4] and s[1] == s[5] and s[2] == s[6]]
-        print(self.chess_game)
-        self.step_lists = self.match_step_comment(self.chess_game['move_list'], self.chess_game['comments'])
+        return chess_game
+
+    def translate(self, chess_game):
+        self.match_step_comment(chess_game['move_list'], chess_game['comments'])
         [self.translate_steps(s) for s in self.step_lists]
 
 if __name__ == '__main__':
