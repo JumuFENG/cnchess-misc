@@ -17,10 +17,14 @@ class ChessDb():
                 mxid = 0
 
         chess_info = {}
-        chess_info['id'] = mxid + 1
+        chess_info['id'] = chess_game['id'] if 'id' in chess_game else mxid + 1
         chess_info['title'] = chess_game['title']
         if chess_game['binit'] is not None:
             chess_info['binit'] = chess_game['binit']
+        if 'category' in chess_game:
+            chess_info['category'] = chess_game['category']
+        if 'tips' in chess_game:
+            chess_info['tips'] = chess_game['tips']
 
         move_list_table = 'move_list_' + str(chess_info['id'])
         comments_table = 'comments_' + str(chess_info['id'])
@@ -28,25 +32,30 @@ class ChessDb():
             self.save_move_list(move_list_table, chess_game['move_list'])
         if len(chess_game['comments']) > 0:
             self.save_comments(comments_table, chess_game['comments'])
-        self.db.insert('chess_qipu', chess_info)
+        if self.db.is_exist_table_rows('chess_qipu', 'id=%s' % chess_info['id']):
+            self.db.update('chess_qipu', chess_info, {'id':chess_info['id']})
+        else:
+            self.db.insert('chess_qipu', chess_info)
 
     def save_move_list(self, table, move_list):
         if not self.db.is_exist_table(table):
+            max_step_len = 4 + len(max(move_list, key=lambda p: len(p['steps']))['steps'])
             self.db.create_table(table, {
                 'id': 'INT NOT NULL DEFAULT 0',
                 'baseid': 'INT NOT NULL DEFAULT 0',
                 'start_node': 'INT NOT NULL DEFAULT 0',
-                'steps': 'VARCHAR(255) DEFAULT ""'
+                'steps': 'VARCHAR(%s) DEFAULT ""' % max_step_len
                 }, 'PRIMARY KEY (id)')
         self.db.insert_many(table, datalist = move_list)
 
     def save_comments(self, table, comments):
         if not self.db.is_exist_table(table):
+            max_comment_len = 4 + len(max(comments, key=lambda p: len(p['comment']))['comment'])
             self.db.create_table(table, {
                 'id': 'INT AUTO_INCREMENT',
                 'step_list_id': 'INT NOT NULL DEFAULT 0',
                 'step': 'INT NOT NULL DEFAULT 0',
-                'comment': 'VARCHAR(255) DEFAULT ""'
+                'comment': 'VARCHAR(%s) DEFAULT ""' % max_comment_len
                 }, 'PRIMARY KEY (id)')
         self.db.insert_many(table, datalist = comments)
 
