@@ -183,8 +183,24 @@ class Parser():
     def translate_steps(self, steps):
         self.init()
         stps = [self.translate_step(s) for s in self.get_whole_steps(self.step_lists, steps['id'])]
-        for s in stps:
-            print(s.full_step() if self.show_comments else s)
+        str_step_all = []
+        for i in range(0, len(stps), 2):
+            str_step = str(int(1 + i/2)) + ': '
+            if i + 1 == len(stps):
+                str_step += stps[i].full_step() if self.show_comments else str(stps[i])
+                str_step_all.append(str_step)
+                continue
+            if not self.show_comments:
+                str_step += str(stps[i]) + '  ' + str(stps[i+1])
+            else:
+                if stps[i].comment is None:
+                    str_step += stps[i].full_step() + '  ' + stps[i+1].full_step()
+                else:
+                    str_step += stps[i].full_step()
+                    str_step += '\n' + str(int(1 + i/2)) + ': ......   '
+                    str_step += stps[i+1].full_step()
+            str_step_all.append(str_step)
+        steps['translated'] = str_step_all
             
     def get_whole_steps(self, step_lists, id):
         basestep = [s for s in step_lists if s['id'] == int(id)][0]
@@ -194,7 +210,6 @@ class Parser():
         return basesteps[0:basestep['start_node'] - 1] + basestep['steps']
 
     def match_step_comment(self, mvlist, comments):
-        #mvlist.sort(key = lambda m: m['id'])
         self.step_lists = []
         for m in mvlist:
             step = {}
@@ -232,6 +247,11 @@ class Parser():
     def translate(self, chess_game):
         self.match_step_comment(chess_game['move_list'], chess_game['comments'])
         [self.translate_steps(s) for s in self.step_lists]
+        for m in chess_game['move_list']:
+            for s in self.step_lists:
+                if m['id'] == s['id']:
+                    m['translated'] = s['translated']
+                    break
 
 if __name__ == '__main__':
     pos = ChessPos(xy ='12')

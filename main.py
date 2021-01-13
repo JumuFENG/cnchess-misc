@@ -5,6 +5,7 @@ from netutil.netutils import XQDownloader
 from xqparser.dhtmlxq import Parser
 from db_utils import ChessDb
 import re
+import os
 
 def get_next_view(fn, cat):
     d = XQDownloader()
@@ -34,7 +35,7 @@ def get_all_jzm():
         if nexthref == '/':
             break
 
-def get_all_jzm():
+def get_all_mhp():
     category = '梅花谱'
     start = '/Category/View-8052.html'
     nexthref = get_next_view(start, category)
@@ -46,9 +47,30 @@ def get_all_jzm():
 
 def get_from_db():
     db = ChessDb()
-    p = Parser()
-    t29 = db.get_qipu(29)
-    print(t29)
+    p = Parser(False)
+    t = db.get_qipu(82)
+    p.translate(t)
+    for x in t['move_list']:
+        print(t['title'] + ' 本变：' if x['id'] == 0 else t['title'] + ' ' + str(x['id']) + '变：')
+        for s in x['translated']:
+            print(s)
+
+def dump_to_file(id, file):
+    db = ChessDb()
+    t = db.get_qipu(id)
+    p = Parser(False)
+    p.translate(t)
+    txt = []
+    for x in t['move_list']:
+        txt.append('<h2>' + t['tips'] + t['title'] + '</h2>' if x['id'] == 0 else '')
+        ml = '本变' if x['id'] == 0 else str(x['id']) + '变'
+        txt.append('<h3 style="text-align:center">' + ml + '</h3>')
+        for s in x['translated']:
+            txt.append(s + '</br>')
+
+    with open(file, 'wt', encoding='utf-8') as f:
+        for s in txt:
+            f.write('%s\n' % s)
 
 def load_single_qipu():
     txt = """
@@ -64,8 +86,17 @@ def load_single_qipu():
     db = ChessDb()
     db.save_game(game)
 
+def fix_data_in_db():
+    db = ChessDb()
+    mhtips = db.db.select('chess_qipu', ['id', 'tips'], 'category = "梅花谱"')
+    for t in mhtips:
+        t['tips'] = t['tips'].split('<title>')[1]
+
+    db.db.update_many('chess_qipu', conkeys=['id'], datalist = mhtips)
+    print('done!')
 
 if __name__ == '__main__':
     # get_views()
     # get_from_db()
     # get_all_jzm()
+    dump_to_file(3, '1.html')
