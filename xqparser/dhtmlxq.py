@@ -180,8 +180,8 @@ class Parser():
         c.move_to(pos2)
         return rstp
 
-    def translate_steps(self, steps):
-        self.init()
+    def translate_steps(self, steps, binit = None):
+        self.init(binit)
         stps = [self.translate_step(s) for s in self.get_whole_steps(self.step_lists, steps['id'])]
         str_step_all = []
         for i in range(0, len(stps), 2):
@@ -246,7 +246,7 @@ class Parser():
 
     def translate(self, chess_game):
         self.match_step_comment(chess_game['move_list'], chess_game['comments'])
-        [self.translate_steps(s) for s in self.step_lists]
+        [self.translate_steps(s, chess_game['binit']) for s in self.step_lists]
         for m in chess_game['move_list']:
             for s in self.step_lists:
                 if m['id'] == s['id']:
