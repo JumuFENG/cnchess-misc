@@ -1,7 +1,7 @@
 # Python 3
 # -*- coding: utf-8 -*-
 
-from netutil.netutils import XQDownloader
+from netutil.netutils import XQDownloader,DPXQDownloader
 from xqparser.dhtmlxq import Parser
 from db_utils import ChessDb
 import re
@@ -99,10 +99,31 @@ def fix_data_in_db():
     db.db.update_many('chess_qipu', conkeys=['id'], datalist = mhtips)
     print('done!')
 
+def save_dpxq_dhtml(dhtml, dest = None):
+    if isinstance(dhtml, (list, tuple)):
+        [save_dpxq_dhtml(h) for h in dhtml]
+        return
+    
+    if isinstance(dhtml, str):
+        if dest is None:
+            dest = re.search(r'\[DhtmlXQ_title\](.*?)\[\/DhtmlXQ_title\]', dhtml).group(1).strip()
+            if dest is None:
+                print('title not found!')
+                return
+            fname =  'output/' + dest + '.txt'
+        else:
+            fname = dest
+
+        with open(fname, 'wt', encoding='utf-8') as f:
+            f.write(dhtml)
+
 
 if __name__ == '__main__':
     # get_all_in_category(start = '/Category/View-8261.html', category = '橘中秘')
     # get_all_in_category(start = '/Category/View-8052.html', category = '梅花谱')    
     # get_from_db()
-    # dump_to_file(3, '1.html')
-    dump_all0_to_file('all_com.html')
+    # dump_to_file(4, 'output/4.html')
+    # dump_all0_to_file('all_com.html')
+    dpdld = DPXQDownloader()
+    dhtml = dpdld.get_dhtml('/hldcg/search/view_u_38385.html')
+    save_dpxq_dhtml(dhtml)
